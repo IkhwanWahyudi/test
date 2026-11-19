@@ -11,7 +11,9 @@
     $(document).ready(function() {
         $('#table').DataTable({
             searching: false,
-            order: [[0, 'desc']],
+            order: [
+                [0, 'desc']
+            ],
         });
         getData()
     });
@@ -20,8 +22,19 @@
         getData()
     })
 
-    function getData(){
-        
+    $('#btn-export').click(function(e) {
+        e.preventDefault();
+        var params = $.param({
+            kode: $('#filter-kode').val(),
+            nama: $('#filter-nama').val(),
+            hargamin: $('#filter-harga-min').val(),
+            hargamax: $('#filter-harga-max').val()
+        });
+        window.location.href = '{{ url('master-items/export') }}?' + params;
+    });
+
+    function getData() {
+
         $('#loading-filter').show();
         var dataTableObj = $('#table').DataTable();
         var filter_kode = $('#filter-kode').val()
@@ -31,11 +44,12 @@
         dataTableObj.clear().draw();
 
         $.ajax({
-            url: '{{url("master-items/search")}}',
+            url: '{{ url('master-items/search') }}',
             dataType: 'json',
             tryCount: 0,
             retryLimit: 3,
-            data: 'kode=' + filter_kode + '&nama=' + filter_nama + '&hargamin=' + filter_harga_min + '&hargamax=' + filter_harga_max,
+            data: 'kode=' + filter_kode + '&nama=' + filter_nama + '&hargamin=' + filter_harga_min +
+                '&hargamax=' + filter_harga_max,
             success: function(results) {
                 var data = results.data
 
@@ -45,7 +59,8 @@
                     harga_jual = Math.round(harga_jual)
                     var kode = item.kode;
 
-                    var html = `<a href="{{url('master-items/view/')}}/` + kode + `" class="btn btn-primary">View</a>`
+                    var html = `<a href="{{ url('master-items/view/') }}/` + kode +
+                        `" class="btn btn-primary">View</a>`
 
                     $.each(item, function(obj_name, obj_value) {
                         if (obj_name == 'laba') return false;

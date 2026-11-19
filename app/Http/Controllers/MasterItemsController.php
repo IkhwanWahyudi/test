@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\MasterItem;
 use Illuminate\Http\Request;
+use App\Exports\MasterItemsExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class MasterItemsController extends Controller
 {
@@ -14,19 +16,15 @@ class MasterItemsController extends Controller
 
     public function search(Request $request)
     {
-        $kode = $request->kode;
-        $nama = $request->nama;
-        $hargamin = $request->hargamin;
-        $hargamax = $request->hargamax;
 
-        $data_search = MasterItem::query();
-
-        if (!empty($kode)) $data_search = $data_search->where('kode', $kode);
-        if (!empty($nama)) $data_search = $data_search->where('nama', 'LIKE', '%' . $nama . '%');
-        if (!empty($hargamin)) $data_search = $data_search->where('harga_beli', '>=', $hargamin)->where('harga_beli', '<=', $hargamax);
-
-        $data_search = $data_search->select('kode', 'nama', 'jenis', 'harga_beli', 'laba', 'supplier')->orderBy('id')->get();
-
+        $data_search = MasterItem::query()
+            ->when($request->filled('kode'), fn($q) => $q->where('kode', 'like', '%' . $request->kode . '%'))
+            ->when($request->filled('nama'), fn($q) => $q->where('nama', 'like', '%' . $request->nama . '%'))
+            ->when($request->filled('hargamin'), fn($q) => $q->where('harga_beli', '>=', $request->hargamin))
+            ->when($request->filled('hargamax'), fn($q) => $q->where('harga_beli', '<=', $request->hargamax))
+            ->select('kode', 'nama', 'jenis', 'harga_beli', 'laba', 'supplier')
+            ->orderBy('id')
+            ->get();
 
         return json_encode([
             'status' => 200,
@@ -66,6 +64,9 @@ class MasterItemsController extends Controller
         }
 
         $data_item->nama = $request->nama;
+        if ($request->hasFile('foto')) {
+            $data_item->foto = $request->file('foto')->store('images', 'public');
+        }
         $data_item->harga_beli = $request->harga_beli;
         $data_item->laba = $request->laba;
         $data_item->kode = $kode;
@@ -85,13 +86,12 @@ class MasterItemsController extends Controller
     public function updateRandomData()
     {
         $data = MasterItem::get();
-        foreach($data as $item)
-        {
+        foreach ($data as $item) {
             $kode = $item->id;
             $kode = str_pad($kode, 5, '0', STR_PAD_LEFT);
 
-            $item->harga_beli = rand(100,1000000);
-            $item->laba = rand(10,99);
+            $item->harga_beli = rand(100, 1000000);
+            $item->laba = rand(10, 99);
             $item->kode = $kode;
             $item->supplier = $this->getRandomSupplier();
             $item->jenis = $this->getRandomJenis();
@@ -101,15 +101,23 @@ class MasterItemsController extends Controller
 
     private function getRandomSupplier()
     {
-        $array = ['Tokopaedi','Bukulapuk','TokoBagas','E Commurz','Blublu'];
-        $random = rand(0,4);
+        $array = ['Tokopaedi', 'Bukulapuk', 'TokoBagas', 'E Commurz', 'Blublu'];
+        $random = rand(0, 4);
         return $array[$random];
     }
 
     private function getRandomJenis()
     {
-        $array = ['Obat','Alkes','Matkes','Umum','ATK'];
-        $random = rand(0,4);
+        $array = ['Obat', 'Alkes', 'Matkes', 'Umum', 'ATK'];
+        $random = rand(0, 4);
         return $array[$random];
+    }
+
+    public function export(Request $request)
+    {
+        return Excel::download(
+            new MasterItemsExport($request->only(['kode', 'nama', 'hargamin', 'hargamax'])),
+            'master-items.xlsx'
+        );
     }
 }

@@ -18,6 +18,11 @@
                             <td>{{$data->nama}}</td>
                         </tr>
                         <tr>
+                            <th>Foto</th>
+                            <td>:</td>
+                            <td><img src="{{ asset('storage/'.$data->foto) }}" width="100" height="100" alt="Foto Item"></td>
+                        </tr>
+                        <tr>
                             <th>Harga Beli</th>
                             <td>:</td>
                             <td>{{$data->harga_beli}}</td>
